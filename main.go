@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/beanstalkd/go-beanstalk"
+	"github.com/joho/godotenv"
 	"log"
 	"os"
 	"time"
@@ -15,18 +16,21 @@ func main() {
 		log.Fatal("Argument missing.")
 	}
 
+	loadEnvVariables()
+	beanstalkDsn := os.Getenv("BEANSTALK_DSN")
+
 	t := argsWithProg[1]
 	if t == "consumer" {
-		consumer()
+		consumer(beanstalkDsn)
 	} else if t == "producer" {
-		producer()
+		producer(beanstalkDsn)
 	} else {
 		fmt.Println("Invalid argument.")
 	}
 }
 
-func consumer() {
-	conn, _ := connect()
+func consumer(beanstalkDsn string) {
+	conn, _ := connect(beanstalkDsn)
 
 	tubeSet := beanstalk.NewTubeSet(conn, "test")
 
@@ -53,8 +57,8 @@ func consumer() {
 	//}
 }
 
-func producer() {
-	conn, _ := connect()
+func producer(beanstalkDsn string) {
+	conn, _ := connect(beanstalkDsn)
 
 	tube := beanstalk.NewTube(conn, "test")
 
@@ -70,11 +74,19 @@ func producer() {
 	log.Printf("Job id %d inserted\n", id)
 }
 
-func connect() (*beanstalk.Conn, error) {
-	conn, err := beanstalk.Dial("tcp", "127.0.0.1:11300")
+func connect(beanstalkDsn string) (*beanstalk.Conn, error) {
+	conn, err := beanstalk.Dial("tcp", beanstalkDsn)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	return conn, err
+}
+
+func loadEnvVariables() {
+	err := godotenv.Load(".env")
+
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 }
